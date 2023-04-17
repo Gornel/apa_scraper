@@ -1,3 +1,9 @@
+"""
+There is a hotel in Japan that will give the insanely low price of $40 per night if you book a 30 day chunk all at once.
+Their site only lets you search a single location one day at a time, this script will scrape as many locations and days as needed.
+Unfortunately, I think they have discontinued the offer... so this script is now just for posterity.
+Youtube of the first time I ran it:  https://www.youtube.com/watch?v=cGUOLdaKBuE
+"""
 import requests
 from bs4 import BeautifulSoup
 import re
@@ -7,14 +13,13 @@ from datetime import timedelta, datetime
 import logging
 import asyncio
 import aiohttp
-from time import perf_counter
 
 logging.basicConfig(filename="logfile.log", level=logging.INFO,format="%(asgctime)s %(levelname)s %(message)s")
 
 # header that pretends to be a browser
 headers = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:100.0) Gecko/20100101 Firefox/100.0"}
 
-#the settings which will be used to search, they come with default valuesg
+#the settings which will be used to search, they come with default values
 querySettings = {
   "subNumber": 25,
   "firstDay": 26,
@@ -28,8 +33,8 @@ querySettings = {
   "smokingRoom": 0
 }        
 
-#extracts locations and ID's into 3 lists. every ID has a prefecture and sub area attached
 def generate_location_lists():
+    """Extracts website locations and ID's into 3 lists. Every ID has an equivalent prefecture and sub area."""
     #download webpage
     page = requests.get('https://www.apahotel.com/articles/monthly/', headers=headers, allow_redirects=False)
     #find the list of current locations in website html by turning it into a beautifulsoup to isolate the easy way
@@ -63,8 +68,12 @@ def generate_location_lists():
     return idList, prefList, subList, engList
 
 
-#generate a list of urls for the dates we'd like to search
 def generate_URL_batch(settings: dict):
+    """Creates a URL list for the dates given at a select location.
+    
+    Parameters
+    -
+    settings: The location and period of time you would like to search"""
     date = datetime(settings['firstYear'], settings['firstMonth'], settings['firstDay'])
     endDate = datetime(settings['lastYear'], settings['lastMonth'], settings['lastDay'])
     total = (endDate - date)+ timedelta(days=1) 
@@ -82,6 +91,11 @@ def generate_URL_batch(settings: dict):
     return url
 
 def SEARCH_EVERYTHING(settings: dict):
+    """Creates a URL list of all valid dates at all locations
+    
+    Parameters
+    -
+    settings: Most settings will be overwritten by this function"""
     settings["lastDay"] = 31
     settings["lastMonth"] = 10
     settings["lastYear"] = 2023
@@ -95,8 +109,16 @@ def SEARCH_EVERYTHING(settings: dict):
         urlList = urlList + generate_URL_batch(settings)
     return urlList
         
-#request html from one url and wait. when page arrives check it for vacancy
+
 async def get_and_check_HTML(session: aiohttp.ClientSession, url: str):
+    """Requests html from one url and waits. When the page arrives it is checked for vacancy
+    and if found, creates a file in the current directory containing its link
+    
+    Parameters
+    -
+    session: the aiohttp session that is being used to send web requests.
+    url: website url that needs to be checked.
+    """
     async with session.get(url) as response:
         dump = await response.text()
         logging.info(f"searched: {url}")
@@ -110,14 +132,23 @@ async def get_and_check_HTML(session: aiohttp.ClientSession, url: str):
             with open(f'targetpage__{datetime.now()}.html', 'w') as f:
                 f.write(url)
          
-#make a session template and use it to activate asynchronous functions that download each url in a list
 async def main(mode: int):
+    """Creates a web session and uses asynchronous functions to download requested urls.
+    
+    Parameters
+    -
+    mode: toggles the scope of the search.
+    
+    0 - Search a single location, 1 - Search all locations during all dates
+    """
     #use fake header because we arent a bot
-    async with aiohttp.ClientSession(headers= headers) as session:
+    async with aiohttp.ClientSession(headers=headers) as session:
+        #option for searching a single location or all of them
         if mode == 0:
-            await asyncio.gather(*[get_and_check_HTML(session, url) for url in generate_URL_batch(querySettings)])
+            queryType = generate_URL_batch(querySettings)
         if mode == 1:
-            await asyncio.gather(*[get_and_check_HTML(session, url) for url in SEARCH_EVERYTHING(querySettings)])
+            queryType = SEARCH_EVERYTHING(querySettings)
+        await asyncio.gather(*[get_and_check_HTML(session, url) for url in queryType])
             
 if __name__ == "__main__":
     idList, prefList, subList, engList = generate_location_lists()
