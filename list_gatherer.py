@@ -1,7 +1,7 @@
 """
 There is a hotel in Japan that will give the insanely low price of $40 per night if you book a 30 day chunk all at once.
-The site only lets you search a single location and day at a time, this script will scrape as many locations and days as needed,
-and translate the locations to english. Unfortunately, I think they have discontinued the offer... so this script is now just for posterity.
+The site only lets you search a single location and day at a time, this script will asynchronously scrape as many locations and days as needed
+and translate the locations to english. Unfortunately, I think they have discontinued the offer... so this is now just for posterity.
 Youtube of the first time I ran it:  https://www.youtube.com/watch?v=cGUOLdaKBuE
 """
 import requests
