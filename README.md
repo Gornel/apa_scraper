@@ -1,2 +1,2 @@
 # apa_scraper
-Look for bookings on apahotel.com
+Looks for steep discount bookings on apahotel.com
